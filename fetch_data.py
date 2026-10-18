@@ -110,8 +110,6 @@ SCHEMA = {
     }
 }
 
-
-
 def connect():
     try:
         conn = mysql.connector.connect(
@@ -202,24 +200,6 @@ def get_db_details(conn):
     except Error as exc:
         return [0, exc, "mysql_error"]
 
-# def get_data(conn,tablename):
-#     cursor = None
-
-#     if tablename not in SCHEMA:
-#         return [0,"ERR_UNKNOWN_TABLE"]
-
-#     try:
-#         cursor = conn.cursor()
-#         cursor.execute(f"select * from {tablename}")
-#         data = cursor.fetchall()
-#         return [1,data]
-#     except Error as exc:
-#         return [0,exc, "mysql_error"]
-#     finally:
-#         if cursor is not None:
-#             cursor.close()
-
-
 def get_data(conn, tablename):
     cursor = None
 
@@ -259,7 +239,7 @@ def get_row(conn, tablename, id):
 
         data = cursor.fetchone()
 
-        return [1, data]
+        return [1, data, "success"]
 
     except Error as exc:
         return [0, str(exc), "mysql_error"]
@@ -295,16 +275,6 @@ def verify_data_by_ID(conn, tablename, data_id):
         if cursor is not None:
             cursor.close()
 
-# def format_data_DIL(raw_data):
-#     data = []
-#     for i in raw_data:
-#         temp = []
-#         for j in i.values():
-#             temp.append(str(j))
-#         data.append(temp)
-#     return data
-
-
 def validate_execution(return_data):
         if return_data[0] == 1:
             details = return_data[1]
@@ -312,7 +282,6 @@ def validate_execution(return_data):
         else:
             return [0,f"Query execution failed: {return_data[1]}", "MYSQL_ERR"]
         
-
 def add_courses(conn, raw_data):
     cursor = None
 
@@ -399,62 +368,29 @@ def close_connection(conn):
     except Exception as e:
         print(f"Error while closing connection: {e}")
 
-def main():
-    print("Trying to establish connection between database!")
+def delete_row(conn,tablename, id):
+    cursor = None
 
-    output = connect()
-    if output[0] == 0:
-        if output[2] == "keyerror":
-            return [0, f"Missing environment variable: {output[1]}", 'error']
-        elif output[2] == "mysql_error":
-            return [0, f"Mysql connection failed: {output[1]}", 'mysql_error']
-        return
-
-    connection = output[1]
+    if not isinstance(id,int):
+        return [0,f"Invalid {id} data type",None]
 
     try:
-        database_details = get_db_details(connection)
+        cursor = conn.cursor()
 
-        # fetch_raw_data = get_data(connection,courses)
-        # validate_db_details = validate_execution(database_details)
-        # if not validate_db_details:
-        #     return
-        # validate_fetch_data = validate_execution(fetch_raw_data)
-        # if not validate_fetch_data:
-        #     return
-        # fetched_data = format_data(fetch_raw_data[1])
+        data_existence = get_row(conn,tablename,id)
+        if data_existence[0] != 1:
+            return [0,"Data not Found!!",None]
 
-        data = data_validation(
-            courses,
-            {
-                "course_name": "Full Stack Development",
-                "teacher_id": 2,
-                "replacement_teacher_id": 1,
-                "start_time": "09:00",
-                "end_time": "11:00",
-                "seat_capacity": 30,
-                "fee_amount": 4000,
-                "schedule_days": "MON,TUE,WED",
-                "duration_months": 5,
-                "start_date": "2026-12-12",
-                "end_date": "2027-12-12",
-                "status": "ACTIVE"
-            }
-        )
+        query = f"DELETE FROM {tablename} WHERE id = %s"
+        cursor.execute(query,(id,))
+        conn.commit()
 
-        if not data[0]:
-            return data[1]
-        
-        add_course = add_courses(connection, data[1])
-
-        if add_course[0]:
-            print(add_course[1])
-        else:
-            print(add_course)
-
+        return [1,f"Success", f"Successfully deleted {id}, Row = {data_existence[1]}"]
+        # check if table is for student then we have delete it from enrollment too
+        pass
+    except Exception as exc:
+        return [0,"error",exc]
     finally:
-        # Call the new disconnect function here
-        close_connection(connection)
+        if courses is not None:
+            cursor.close()
 
-# if __name__ == "__main__":
-#     main()

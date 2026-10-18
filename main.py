@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Body, HTTPException
 from fetch_data import connect, get_data, close_connection, get_format, get_row
-from fetch_data import students,data_validation , courses,teachers, enrollments, add_courses
+from fetch_data import students,data_validation , courses,teachers, enrollments, add_courses, delete_row
 from pydantic import BaseModel, Field
 from datetime import date, time
 from decimal import Decimal
@@ -71,7 +71,7 @@ def addCourse(data: dict = Body(...)):
     try:
 
         fetched_data = add_courses(conn,data)
-        success, msg, result = fetched_data[0],fetched_data[1],fetched_data[2]
+        success, msg, result = fetched_data
 
         if not success:
             if result == "mysql_error":
@@ -92,8 +92,32 @@ def addCourse(data: dict = Body(...)):
         }    
     finally:
         close_connection(conn)
-    
-    
+
+@app.get("/attested/delete")
+def delete(table: str,id: int):
+    output = connect()
+    conn = output[1]
+    if not output or output[0] != 1:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database Connection Failed"
+        )
+
+    try:
+        delete_request = delete_row(conn, table,id)
+        success, msg, data = delete_request
+        if not success:
+            raise HTTPException(
+                status_code=400,
+                detail=msg
+            )
+        return {
+            "success": True,
+            "detail": msg,
+            "data": data
+        }
+    finally:
+        close_connection(conn)
 
 @app.get("/attested/get_students")
 async def get_students_data():
