@@ -1,0 +1,194 @@
+Module	Main responsibility
+0. Storage	                Read, write, append, update, and validate stored records
+1. Shared utilities	        IDs, validation, date/time handling, errors
+2. Course management	    Course lifecycle, fees, capacity, schedules
+3. Scheduling and sessions	Time-slot availability, conflicts, cancellations, replacements
+4. Teacher management	    Registration, specialties, schedules, assignments
+5. Student and enrollment	Registration, enrollment, capacity and duplicate checks
+6. Finance	Student fees,   payment history, teacher payroll
+7. Attendance	            Student and teacher attendance, duplicate prevention
+8. Reports and notices	    Dashboard, attendance, finance, and schedule reports
+9. CLI	                    Menus, user input, display, application entry point
+
+
+
+0. Data storage and persistence
+[ * ] get_data(filename) — Read records from a CSV file.
+[ ] save_data(filename, records) — Write a complete collection of records.
+[ ] append_data(filename, row) — Append one new record.
+[ ] update_record(filename, record_id, updated_data) — Update a record without overwriting unrelated records.
+[ ] find_record(filename, field, value) — Find a record by a field and value.
+[ ] find_records(filename, field, value) — Find multiple matching records.
+[ ] delete_record(filename, record_id) — Remove a record where deletion is permitted.
+[ ] ensure_data_files() — Check that required data files exist and have valid headers.
+[ ] validate_record_fields(filename, record) — Check required fields and record shape.
+[ ] backup_data(filename) — Create a backup before risky changes.
+
+1. Shared utilities and validation
+[ ] generate_id(prefix, records) — Generate unique course, teacher, student, session, and payment IDs.
+[ ] get_next_id(prefix, filename, id_field) — Determine the next ID from existing records.
+[ ] validate_required_fields(data, fields) — Check that required inputs are provided.
+[ ] validate_date(date_string) — Validate date format and calendar date.
+[ ] validate_time(time_string) — Validate time format.
+[ ] validate_phone_number(phone) — Validate student phone numbers.
+[ ] validate_positive_amount(amount) — Validate fees, payments, and salaries.
+[ ] validate_status(status, allowed_statuses) — Restrict values to permitted statuses.
+[ ] parse_schedule_days(days) — Parse and validate days such as MON,TUE,WED.
+[ ] format_currency(amount) — Format monetary values for display.
+[ ] handle_error(error_code) — Return or display a consistent error message.
+[ ] confirm_action(message) — Ask for confirmation before sensitive actions.
+
+2. Course management
+[ * ] add_course(data) — Create a course after validating its details and schedule.
+[ ] view_all_courses() — Display all courses.
+[ ] view_course_details(course_id) — Show one course and its related information.
+[ ] update_course(course_id, updated_data) — Modify permitted course fields.
+[ ] archive_course(course_id) — Retire a course while preserving historical records.
+[ ] get_course_by_id(course_id) — Retrieve a course by its unique ID.
+[ ] validate_course_data(data) — Validate course name, fee, capacity, duration, and dates.
+[ ] get_course_enrollment_count(course_id) — Count active enrollments for a course.
+[ ] get_course_available_seats(course_id) — Calculate remaining capacity.
+[ ] update_course_fee(course_id, fee_amount) — Update the course's current fee.
+[ ] view_course_students(course_id) — List students actively enrolled in a course.
+[ ] view_course_teachers(course_id) — Display primary and replacement teachers.
+
+3. Scheduling and class sessions
+[ ] get_time_slots() — Retrieve the configured daily time slots, if using fixed slots.
+[*] get_available_slots(session_date, duration) — Find slots compatible with the requested date and duration.
+[ ] check_room_conflict(session_date, start_time, end_time) — Check whether the room is already booked.
+[ ] check_teacher_conflict(teacher_id, session_date, start_time, end_time) — Check overlapping teaching assignments.
+[ ] check_schedule_conflicts(course_data) — Validate the proposed course schedule against existing schedules.
+[ ] get_eligible_replacement_teachers(course_id, session_date, start_time, end_time) — Suggest teachers who are qualified and available.
+[ ] create_class_session(course_id, session_date) — Create a session for a course on a particular date.
+[ ] generate_course_sessions(course_id) — Generate scheduled sessions from course dates and weekdays.
+[ ] get_session_by_id(session_id) — Retrieve a specific session.
+[ ] view_sessions_by_date(session_date) — Display all sessions scheduled for a date.
+[ ] view_course_sessions(course_id) — Display the sessions belonging to a course.
+[ ] view_running_sessions() — Display sessions considered currently running.
+[ ] view_cancelled_sessions() — Display cancelled sessions.
+[ ] cancel_class_session(session_id, reason) — Cancel a session and preserve its history.
+[ ] reschedule_class_session(session_id, new_date, new_start, new_end) — Change a session after checking conflicts.
+[ ] replace_session_teacher(session_id, replacement_teacher_id) — Assign an eligible substitute teacher.
+[ ] complete_class_session(session_id) — Mark a session completed after it has taken place.
+[ ] get_session_status(session_id) — Retrieve the current session status.
+[ ] get_daily_schedule(session_date) — Produce the academy's schedule for a particular date.
+
+4. Teacher management
+[ ] add_teacher(data) — Register a teacher.
+[ ] view_all_teachers() — Display all teachers.
+[ ] view_teacher_details(teacher_id) — Display one teacher's profile.
+[ ] update_teacher(teacher_id, updated_data) — Update teacher details.
+[ ] deactivate_teacher(teacher_id) — Deactivate a teacher without losing historical records.
+[ ] get_teacher_by_id(teacher_id) — Retrieve a teacher by ID.
+[ ] validate_teacher_data(data) — Validate name, specialties, salary, and status.
+[ ] get_teacher_assigned_courses(teacher_id) — Find courses assigned to a teacher.
+[ ] get_teacher_schedule(teacher_id, start_date, end_date) — Show scheduled teaching sessions within a date range.
+[ ] get_teacher_workload(teacher_id) — Calculate the teacher's assigned workload.
+[ ] get_available_teachers(session_date, start_time, end_time) — Find teachers without overlapping sessions.
+[ ] assign_primary_teacher(course_id, teacher_id) — Assign the primary teacher to a course.
+[ ] assign_replacement_teacher(course_id, teacher_id) — Assign a replacement teacher to a course.
+[ ] validate_teacher_assignment(course_id, teacher_id) — Check eligibility and scheduling conflicts.
+[ ] get_teacher_attendance_percentage(teacher_id, start_date, end_date) — Calculate teacher attendance against eligible sessions.
+
+5. Student registration and enrollment
+[ ] add_student(data) — Register a student.
+[ ] view_all_students() — Display students.
+[ ] view_student_details(student_id) — Display a student's profile.
+[ ] update_student(student_id, updated_data) — Update student details.
+[ ] deactivate_student(student_id) — Deactivate a student without erasing history.
+[ ] get_student_by_id(student_id) — Retrieve a student by ID.
+[ ] validate_student_data(data) — Validate student name, phone, and optional address.
+[ ] enroll_student(student_id, course_id) — Create an enrollment after all checks pass.
+[ ] unenroll_student(student_id, course_id) — End an active enrollment while preserving history.
+[ ] validate_enrollment(student_id, course_id) — Validate the student and course before enrollment.
+[ ] check_duplicate_enrollment(student_id, course_id) — Prevent a second active enrollment in the same course.
+[ ] check_course_capacity(course_id) — Prevent enrollment when the course is full.
+[ ] get_student_enrollments(student_id) — Retrieve a student's enrollment records.
+[ ] get_student_active_courses(student_id) — List a student's currently active courses.
+[ ] get_course_active_students(course_id) — List currently enrolled students.
+[ ] get_enrollment_by_id(enrollment_id) — Retrieve an enrollment record.
+
+6. Student fees and payment history
+[ ] create_student_fee_record(student_id, course_id, payment_plan) — Create a fee obligation for an enrollment.
+[ ] get_fee_record_by_id(fee_record_id) — Retrieve a fee record.
+[ ] get_student_fee_records(student_id) — Retrieve all fee records for a student.
+[ ] calculate_total_paid(fee_record_id) — Sum payments linked to a fee record.
+[ ] calculate_fee_balance(fee_record_id) — Calculate the remaining amount owed.
+[ ] get_fee_payment_status(fee_record_id) — Determine pending, partial, paid, or overpaid status.
+[ ] record_fee_payment(fee_record_id, amount, payment_date, method) — Record a new payment transaction.
+[ ] get_fee_payment_history(fee_record_id) — Display the transaction history.
+[ ] view_pending_student_fees() — List outstanding student balances.
+[ ] view_completed_student_fees() — List fully paid fee records.
+[ ] view_student_payment_report(student_id) — Display one student's payment history and balance.
+[ ] view_fee_collection_report(start_date, end_date) — Summarize payments received during a period.
+[ ] generate_fee_due_dates(fee_record_id) — Create due dates for the selected payment plan.
+[ ] get_overdue_fee_records(as_of_date) — Find balances past their due dates.
+
+7. Teacher payroll and salary payments
+[ ] create_salary_record(teacher_id, period, salary_amount) — Create a salary obligation for a period.
+[ ] get_salary_record_by_id(salary_record_id) — Retrieve a salary obligation.
+[ ] calculate_salary_paid(salary_record_id) — Sum payments against the salary obligation.
+[ ] calculate_salary_balance(salary_record_id) — Calculate the outstanding salary balance.
+[ ] get_salary_payment_status(salary_record_id) — Determine pending, partial, or paid status.
+[ ] record_salary_payment(salary_record_id, amount, payment_date) — Record a salary payment transaction.
+[ ] get_salary_payment_history(salary_record_id) — Display salary transactions.
+[ ] view_pending_teacher_salaries() — List outstanding salary balances.
+[ ] view_completed_teacher_salaries() — List fully paid salary obligations.
+[ ] view_teacher_salary_report(teacher_id) — Show one teacher's salary and payment history.
+[ ] view_payroll_report(start_date, end_date) — Summarize salary obligations and payments.
+
+8. Attendance and registration
+[ ] mark_student_attendance(session_id, student_id, status) — Record attendance for an enrolled student.
+[ ] update_student_attendance(session_id, student_id, status) — Correct an existing attendance entry.
+[ ] get_student_attendance_record(session_id, student_id) — Find an existing attendance entry.
+[ ] check_duplicate_student_attendance(session_id, student_id) — Prevent duplicate entries for a student and session.
+[ ] get_student_attendance_history(student_id, course_id) — Retrieve attendance history.
+[ ] get_student_attendance_percentage(student_id, course_id) — Calculate attendance percentage.
+[ ] get_student_absence_report(course_id, start_date, end_date) — List student absences across eligible sessions.
+[ ] mark_teacher_attendance(session_id, teacher_id, status) — Record attendance for the teacher assigned to a session.
+[ ] update_teacher_attendance(session_id, teacher_id, status) — Correct an existing teacher attendance entry.
+[ ] get_teacher_attendance_record(session_id, teacher_id) — Find an existing teacher attendance entry.
+[ ] check_duplicate_teacher_attendance(session_id, teacher_id) — Prevent duplicate entries for a teacher and session.
+[ ] get_teacher_attendance_history(teacher_id) — Retrieve teacher attendance history.
+[ ] get_teacher_attendance_report(teacher_id, start_date, end_date) — Report attendance and absences for a teacher.
+
+9. Dashboard, reports, and notices
+[ ] get_academy_dashboard_data() — Collect the key numbers for the main screen.
+[ ] count_active_courses() — Count active courses.
+[ ] count_total_students() — Count registered students.
+[ ] count_total_teachers() — Count active teachers.
+[ ] count_running_sessions(session_date) — Count sessions currently in progress.
+[ ] count_cancelled_sessions(session_date) — Count cancelled sessions for a date.
+[ ] get_available_slot_report(session_date) — Report available scheduling slots.
+[ ] get_course_strength_report() — Show enrolled and available seats per course.
+[ ] get_daily_attendance_summary(session_date) — Summarize student and teacher attendance.
+[ ] get_daily_financial_summary(payment_date) — Summarize fee and salary transactions.
+[ ] get_course_schedule_report(course_id) — Show the schedule and sessions for a course.
+[ ] get_teacher_schedule_report(teacher_id) — Show a teacher's schedule.
+[ ] get_student_attendance_report(student_id, course_id) — Show an individual student's attendance.
+[ ] get_cancellation_report(start_date, end_date) — Report cancelled sessions and reasons.
+[ ] add_notice(message, notice_type, session_id) — Create a notice about a schedule change or other event.
+[ ] view_active_notices() — Display notices currently relevant to users.
+[ ] archive_notice(notice_id) — Archive an old notice.
+
+10. Command-line interface and application flow
+[ ] display_main_dashboard() — Print the academy overview.
+[ ] display_main_menu() — Show the available modules.
+[ ] display_course_menu() — Show course actions.
+[ ] display_teacher_menu() — Show teacher actions.
+[ ] display_student_menu() — Show student and enrollment actions.
+[ ] display_finance_menu() — Show fees and payroll actions.
+[ ] display_attendance_menu() — Show attendance actions.
+[ ] display_session_menu() — Show class session actions.
+[ ] display_report_menu() — Show report options.
+[ ] get_user_choice() — Read a menu selection.
+[ ] collect_course_data() — Gather course details from the user.
+[ ] collect_teacher_data() — Gather teacher details.
+[ ] collect_student_data() — Gather student details.
+[ ] collect_payment_data() — Gather payment details.
+[ ] display_records(records) — Format records for terminal output.
+[ ] display_error(message) — Display understandable error messages.
+[ ] handle_menu_choice(choice) — Route the selection to the appropriate module.
+[ ] initialize_academy() — Prepare storage and initial application state.
+[ ] run_academy_management_system() — Run the main application loop.
+[ ] main() — Application entry point.

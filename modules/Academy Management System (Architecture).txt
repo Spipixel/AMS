@@ -1,0 +1,134 @@
+Academy Management System:
+	1. Course/Scheduling module:
+		i. Add, View, update, and archive courses
+		ii. Set fees, capacity, duration, and regular schedule
+		iii. Assign  a primary teacher and a replacement teacher
+		iv. Detect Scheduling conflicts
+		v. Cancel or reschedule student class session
+	2. Teacher Module:
+		i. Register, and view all teachers
+		ii. Track their specialities and assigned course	
+		iii. Display each/individual teacher(s) schedule
+		iv. Track/summarise each teacher attendance (summarise means get the % of teacher attendance attending daily scheduled class sessions)
+		v. prevent overlapping teaching assignments
+	3. Student and enrollment module:
+		i. Register students and validate their details	
+		ii. Enroll and unenroll students
+		iii. Reject invalid course IDs and duplicate active enrollments
+		iv Prevent enrollment beyond course capacity
+		v. Show each student's active courses
+	4. Finance Module:
+		i. Student fee entry
+		ii. Billed Amount (if partial payment is made, if payment is fully paid, or overpaid)
+		iii. Teacher salary entry
+		iv. Display all pending and completed payment in filtered format
+		v. Keep payment history instead of overwiriting a paid or unpaid flag
+	5. Attendance and registration module
+		i. Student attendance entry for a specific session
+		ii. Teacher attendance entry for a specific session
+		iii. Prevent duplicated attendance entires
+		iv. generate attendance percentage and absence report
+	6. Report Module:
+		i. Show running and canceled classes
+		ii. Display total students, teachers, and active courses
+		iii. Show available time slots and emprty time time slots
+		iv. Generate daily attendance and financial summaries
+		v. Display notices about canceled or scheduled change
+	
+
+
+Situation											Expected behavior
+Invalid course ID during enrollment									Reject enrollment with a clear message
+Course has no available seats										Reject enrollment
+Two courses need the same room at the same time								Reject the conflicting schedule
+Teacher already has a class at that time								Reject the conflicting assignment
+Primary teacher is absent										Assign an eligible replacement or mark the session canceled
+Course is removed											Preserve historical records; don't silently erase them
+Student pays part of their fee										Record the payment and calculate the remaining balance
+Teacher receives part of their salary									Record the payment and retain the outstanding balance
+Attendance is entered twice for the same student and session						Prevent the duplicate
+A class is canceled											Exclude it from normal completed-class attendance calculations
+
+
+
+Either we can store these data in databases, dict or md it's up to us
+
+and i am going to store it in md file for my convience
+
+Course data structure:
+	0. Course ID
+	1. Course Name
+	2. Time Slot assigned (in and out hour i.e ["7AM","8AM"])
+	3. Primary Teacher assigned (Stored Teacher unique ID)
+	4. Potential Teacher for Replacement from available teacher lists ( shows suggestions for teacher name for replacement)(Stored Teacher unique ID)
+	5. Course Capacity
+	6. Enrolled Students
+	7. Fees amount
+	8. Schedule (i.e how many day's a month will it runs ["MON", "TUE", "WED"])
+	9. Duration of course (How many month will this courses is going to run)
+	10. Start date
+	11. End date
+
+
+Session data structure:
+	0. session_id
+	1. course_id
+	2. session_date
+	3. start_time
+	4. end_time
+	5. teacher_id
+	6. status
+
+statuses: SCHEDULED, COMPLETED, CANCELED
+Relationship: one course can have many sessions.
+
+Student detail data Structure:
+	0. student_id
+	1. student_name
+	2. phone_number
+	3. address (optional)
+Student enrollment detail data Structure:
+	0. enrollment_id
+	1. student_id
+	2. course_id
+	3. enrollment_date
+	4. status
+Student attendance detail data structure:
+	0. session_id
+	1. student_id
+	2. attendance_status
+Student fees detail data Structure:
+	0. fee_record_id
+	1. student_id
+	2. course_id
+	3. total_fee
+	4. payment_plan (Payment plans: FULL, INSTALLMENTS, or MONTHLY)
+	5. due_dates
+	6. status
+Student fee transaction details data structure:
+	0. payment_id
+	1. fee_record_id
+	2. payment_date
+	3. amount
+	4. payment_method (Payment method: Cash for now)
+
+Teacher detail data structure:
+	0. teacher_id
+	1. teacher_name
+	2. specialities
+	3. monthly_salary
+	4. status
+Teacher salary data structure:
+	0. payment_id
+	1. teacher_id
+	1. salary_amount
+	4. salary_status (paid/unpaid)
+Student Attendance report:
+	0. session_id
+	1. student_id
+	2. course_id
+	3. attendance_status
+Teacher Attendance report:
+	0. session_id
+	1. teacher_id
+	2. attendance_status
