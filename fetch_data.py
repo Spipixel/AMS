@@ -2,7 +2,7 @@ import os
 import mysql.connector
 from mysql.connector import Error
 from fastapi import HTTPException
-
+from globalVAR import *
 
 students = "students"
 teachers = "teachers"
@@ -112,18 +112,16 @@ SCHEMA = {
 
 
 
-
 def connect():
     try:
         conn = mysql.connector.connect(
-            host = "localhost",
-            port = 3306,
-            user = "root",
-            password = "Ayush@2008",
-            database = "ams_db",
+            host = HOST,
+            port = PORT,
+            user = USER,
+            password = PASSWORD,
+            database = DB,
             connection_timeout=5
         )
-
     
         if conn.is_connected():
             return [1, conn]
@@ -132,7 +130,6 @@ def connect():
         return [0, exc, "keyerror"]
     except Error as exc:
         return [0, exc, "mysql_error"]
-
 
 def data_validation(tablename,data):
     if tablename not in SCHEMA:
@@ -193,7 +190,6 @@ def get_format(conn,tablename):
 
     finally:
         close_connection(conn)
-
 
 def get_db_details(conn):
     try:
@@ -317,51 +313,82 @@ def validate_execution(return_data):
             return [0,f"Query execution failed: {return_data[1]}", "MYSQL_ERR"]
         
 
-def add_courses(conn,raw_data):
-    
-    data = tuple(raw_data.values())
-
-    tablename=courses
+def add_courses(conn, raw_data):
     cursor = None
-    teacher_id = raw_data['teacher_id']
-    replacement_teacher_id = raw_data['replacement_teacher_id']
 
+    # 1. Validate incoming data using your existing SCHEMA
+    validation = data_validation(courses, raw_data)
 
-    # check if teacher exists
-    check_teacher_existence = verify_data_by_ID(conn,teachers,teacher_id)
-    check_replacement_teacher_existence = verify_data_by_ID(conn,teachers,replacement_teacher_id)
+    if not validation[0]:
+        return [0, validation[1], None]
 
+    data_dict = validation[1]
 
-    # Verfiying if teacher exists or not
+    # 2. Match the exact order of SQL columns
+    fields = [
+        "course_name",
+        "teacher_id",
+        "replacement_teacher_id",
+        "start_time",
+        "end_time",
+        "seat_capacity",
+        "fee_amount",
+        "schedule_days",
+        "duration_months",
+        "start_date",
+        "end_date",
+        "status"
+    ]
+
+    data = tuple(data_dict[field] for field in fields)
+
+    teacher_id = data_dict["teacher_id"]
+    replacement_teacher_id = data_dict["replacement_teacher_id"]
+
+    # 3. Check teacher IDs
     if teacher_id == replacement_teacher_id:
-        return [0, "Teacher and replacement teacher cannot be same!!"]
-    
-    if not check_teacher_existence[0]:
-        return [0,check_teacher_existence[1]]
+        return [0, "Teacher and replacement teacher cannot be same", None]
 
-    if not check_replacement_teacher_existence[0]:
-        return [0,check_replacement_teacher_existence[1]]
-    
+    check_teacher = verify_data_by_ID(conn, teachers, teacher_id)
+
+    if not check_teacher[0]:
+        return [0, check_teacher[1], None]
+
+    check_replacement = verify_data_by_ID(
+        conn, teachers, replacement_teacher_id
+    )
+
+    if not check_replacement[0]:
+        return [0, check_replacement[1], None]
 
     try:
         cursor = conn.cursor()
-        query = f"""
-            INSERT INTO {tablename} (
-                course_name, teacher_id, replacement_teacher_id, start_time, end_time, 
-                seat_capacity, fee_amount, schedule_days, duration_months, start_date, 
+
+        query = """
+            INSERT INTO courses (
+                course_name, teacher_id, replacement_teacher_id,
+                start_time, end_time, seat_capacity, fee_amount,
+                schedule_days, duration_months, start_date,
                 end_date, status
-            ) 
+            )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
+
         cursor.execute(query, data)
-        conn.commit()  
-        return [1, "Success"]
-    except Error as exc:
-        return [0,exc, "mysql_error"]
+        conn.commit()
+
+        return [1, "Course added successfully", {
+            "course_id": cursor.lastrowid
+        }]
+
+    except Error:
+        conn.rollback()
+        # Log the actual exception on the server.
+        return [0, "Database insert failed", "mysql_error"]
+
     finally:
         if cursor is not None:
-            cursor.close()        
-
+            cursor.close()
 
 def close_connection(conn):
     """Safely checks and closes the MySQL database connection."""
