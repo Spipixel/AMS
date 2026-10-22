@@ -12,6 +12,8 @@ from fetch_data import (
     courses,
     teachers,
     enrollments,
+    get_enrollments,
+    get_enrolled_student_details,
     add_courses,
     delete_row
 )
@@ -159,6 +161,39 @@ def delete(table: str, id: int):
 
     finally:
         close_connection(conn)
+
+
+@app.get("/attested/get_enrollment_data")
+async def get_enrollment_data():
+    output = connect()
+    if not output or output[0] != 1:
+        log_error(
+            "Database connection failed",
+            endpoint="/attested/get_students"
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection unavailable"
+        )
+
+    connection = output[1]
+    return get_enrollments(connection)[1]
+
+@app.get("/attested/enrolled/{id}")
+async def get_enrollment_data(id: int):
+    output = connect()
+    if not output or output[0] != 1:
+        log_error(
+            "Database connection failed",
+            endpoint="/attested/get_students"
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Database connection unavailable"
+        )
+
+    connection = output[1]
+    return get_enrolled_student_details(connection, id)[1]
 
 
 @app.get("/attested/get_students")

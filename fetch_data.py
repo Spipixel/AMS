@@ -107,6 +107,24 @@ SCHEMA = {
             "type": str,
             "required": True
         }
+    },
+    enrollments: {
+        "student_id": {
+            "type": int,
+            "required": True
+        },
+        "course_id": {
+            "type": int,
+            "required": True
+        },
+        "enrollment_date": {
+            "type": str,
+            "required": True
+        },
+        "status": {
+            "type": str,
+            "required": True
+        }
     }
 }
 
@@ -177,6 +195,7 @@ def data_validation(tablename,data):
 def get_format(conn,tablename):
     try:
         raw_data = get_data(conn,tablename)
+        
 
         if raw_data[0] != 1:
             raise HTTPException(
@@ -188,6 +207,45 @@ def get_format(conn,tablename):
 
     finally:
         close_connection(conn)
+
+def get_enrollments(conn):
+    try:
+        cursor = conn.cursor()
+        query = (
+            "select e.id, s.student_name, c.course_name, e.enrollment_date "
+            "from enrollments as e "
+            "join students as s on s.id = e.student_id "
+            "join courses as c on c.id = e.course_id"
+        )
+        cursor.execute(query)
+        result = cursor.fetchall()
+        cursor.close()
+        return [1,result]
+    except Error as exc:
+        return [0,exc, "Mysql_err"]
+
+
+
+def get_enrolled_student_details(conn, student_id):
+    try:
+        cursor = conn.cursor()
+        # 1. Added quotes to make the query a valid Python string
+        query = (
+            "SELECT e.id, s.student_name, c.course_name, e.enrollment_date "
+            "FROM enrollments AS e "
+            "JOIN students AS s ON s.id = e.student_id "
+            "JOIN courses AS c ON c.id = e.course_id "
+            "WHERE e.student_id = %s"
+        )
+        # 2. Passed student_id as a tuple (student_id,)
+        cursor.execute(query, (student_id,)) 
+        result = cursor.fetchall()
+        cursor.close()
+        return [1, result]
+    except Error as exc: 
+        # 3. Removed the undefined Mysql_err variable
+        return [0, exc] 
+
 
 def get_db_details(conn):
     try:
