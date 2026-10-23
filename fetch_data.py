@@ -1,13 +1,16 @@
 import os
 import mysql.connector
 from mysql.connector import Error
+from datetime import datetime
 from fastapi import HTTPException
 from globalVAR import *
 
-students = "students"
-teachers = "teachers"
-courses = "courses"
-enrollments = "enrollments"
+students = tables[0]
+teachers = tables[1]
+courses = tables[2]
+enrollments = tables[3]
+login_t = tables[4]
+logged_t = tables[5]
 
 SCHEMA = {
     courses: {
@@ -146,6 +149,45 @@ def connect():
         return [0, exc, "keyerror"]
     except Error as exc:
         return [0, exc, "mysql_error"]
+
+from datetime import datetime
+
+def authentication(conn, username, password):
+    try:
+        cursor = conn.cursor()        
+        query = f"SELECT id FROM {login_t} WHERE username = %s AND password = %s"
+        cursor.execute(query, (username, password))
+        result = cursor.fetchone()
+        
+        if result is not None:
+            user_id = result[0]
+            if isinstance(user_id, int) and user_id > 0:
+                now = datetime.now()
+                current_date = now.date()
+                current_time = now.time().strftime('%H:%M:%S')
+                
+                log_query = f"""
+                    INSERT INTO {logged_t} (admin_id, logged_date, logged_time) 
+                    VALUES (%s, %s, %s)
+                """
+                cursor.execute(log_query, (user_id, current_date, current_time))
+                log_id = cursor.lastrowid
+                
+                conn.commit()
+                cursor.close()
+                
+                return [1, "success", log_id]
+        
+        cursor.close()
+        return [0, "failed", "Logged_in failed"]
+
+    except Error as exc:
+        try:
+            conn.rollback()
+        except:
+            pass
+        return [0, str(exc), "MYSQL_ERR"]
+
 
 def data_validation(tablename,data):
     if tablename not in SCHEMA:

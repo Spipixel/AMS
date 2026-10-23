@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AMS | Admin Portal</title>
+  <style>
+    :root { color-scheme: light; --bg:#f4f7fb; --card:#fff; --ink:#172033; --muted:#64748b; --line:#dce4ef; --accent:#2457d6; --danger:#b42318; }
+    * { box-sizing:border-box }
+    body { margin:0; font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink) }
+    header { background:#14213d; color:white; padding:22px max(20px,calc((100vw - 1100px)/2)); display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap }
+    header h1 { margin:0; font-size:1.35rem } header p { margin:3px 0 0; color:#cbd5e1 }
+    main { max-width:1100px; margin:28px auto; padding:0 18px 40px }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:22px; box-shadow:0 8px 24px #1720330a; margin-bottom:18px }
+    .hidden { display:none !important }
+    h2 { margin:0 0 12px; font-size:1.15rem } .muted { color:var(--muted) }
+    label { display:block; font-weight:650; margin:12px 0 5px }
+    input { width:100%; padding:11px 12px; border:1px solid #c7d2e2; border-radius:9px; font:inherit; background:white; color:var(--ink) }
+    button, .linkbtn { border:0; border-radius:9px; background:var(--accent); color:white; padding:10px 14px; font:inherit; font-weight:650; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px }
+    button:disabled { opacity:.6; cursor:wait } .secondary { background:#e9eef8; color:#1e293b } .danger { background:var(--danger) }
+    .row { display:flex; gap:10px; align-items:end; flex-wrap:wrap } .row > .grow { flex:1; min-width:230px }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(245px,1fr)); gap:14px }
+    .endpoint { border:1px solid var(--line); border-radius:12px; padding:16px; background:#fff; display:flex; flex-direction:column; gap:9px }
+    .endpoint h3 { margin:0; font-size:1rem } .endpoint p { margin:0; color:var(--muted); font-size:.9rem }
+    code, pre { font-family:ui-monospace,SFMono-Regular,Consolas,monospace }
+    code { overflow-wrap:anywhere; color:#344054 } pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:420px; overflow:auto; background:#0d1728; color:#e2e8f0; border-radius:12px; padding:16px; margin:10px 0 0 }
+    .status { padding:10px 12px; border-radius:9px; margin-top:12px; white-space:pre-wrap }
+    .ok { background:#e8f7ee; color:#166534 } .err { background:#fff0ef; color:#9f1c16 } .info { background:#edf3ff; color:#1d4ed8 }
+    .tag { display:inline-block; font-size:.75rem; font-weight:750; border-radius:6px; padding:3px 7px; background:#e9eef8; color:#334155; width:max-content }
+    .top-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+    .notice { border-left:4px solid #d97706; background:#fffbeb; padding:12px 14px; border-radius:8px; color:#854d0e; margin-top:14px }
+    footer { color:var(--muted); font-size:.85rem; margin-top:18px }
+  </style>
+</head>
+<body>
+<header>
+  <div><h1>Academy Management System</h1><p>Admin API portal</p></div>
+  <div class="top-actions">
+    <span id="sessionLabel" class="muted" style="color:#cbd5e1">Not logged in</span>
+    <button id="logoutBtn" class="secondary hidden" type="button">Log out</button>
+  </div>
+</header>
+<main>
+  <section id="loginPanel" class="panel">
+    <h2>Admin login</h2>
+    <p class="muted">Sign in to open the AMS API tools. Credentials are sent to your FastAPI backend as JSON.</p>
+    <form id="loginForm">
+      <label for="apiBase">API base URL</label>
+      <input id="apiBase" name="apiBase" type="url" value="http://127.0.0.1:8000" required autocomplete="url">
+      <label for="username">Username</label>
+      <input id="username" name="username" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+      <div style="margin-top:16px"><button id="loginBtn" type="submit">Log in</button></div>
+    </form>
+    <div id="loginStatus" aria-live="polite"></div>
+    <div class="notice"><strong>Important:</strong> this page only gates the interface. Real access control must be enforced by FastAPI on every protected endpoint. For a secure persistent login, the backend should issue an HttpOnly, Secure (HTTPS), SameSite cookie; JavaScript cannot create an HttpOnly cookie.</div>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <div class="panel">
+      <div class="row">
+        <div class="grow"><h2>API functions</h2><p class="muted">Select an endpoint to call it and inspect the JSON response.</p></div>
+        <button id="docsBtn" class="secondary" type="button">Open API docs</button>
+      </div>
+      <div class="grid" id="endpointGrid"></div>
+    </div>
+    <section class="panel">
+      <h2>Response</h2>
+      <div id="responseStatus" class="muted">No API request made yet.</div>
+      <pre id="responseOutput">Responses will appear here.</pre>
+    </section>
+    <div class="notice">The current login handler you shared returns JSON like <code>{"status":1,"message":"Login successful","logged_admin_id":123}</code>. This page checks <code>status === 1</code>. It does not store your password or treat a browser-side flag as proof of authorization.</div>
+  </section>
+  <footer>AMS prototype · Use HTTPS outside local development. Configure the API base URL to match your FastAPI server.</footer>
+</main>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const loginPanel = $("loginPanel"), dashboard = $("dashboard");
+  const form = $("loginForm"), loginBtn = $("loginBtn");
+  const sessionLabel = $("sessionLabel"), logoutBtn = $("logoutBtn");
+  const loginStatus = $("loginStatus"), responseStatus = $("responseStatus"), responseOutput = $("responseOutput");
+  const endpoints = [
+    {title:"Get all courses", method:"GET", path:"/attested/get_courses", description:"List course records."},
+    {title:"Get one course", method:"GET", path:"/attested/course/{course_id}", description:"Fetch a course by its numeric ID.", prompt:"course"},
+    {title:"Add course", method:"POST", path:"/attested/add_course", description:"Create a course using a JSON request body.", prompt:"addCourse"},
+    {title:"Get students", method:"GET", path:"/attested/get_students", description:"List student records."},
+    {title:"Get teachers", method:"GET", path:"/attested/get_teachers", description:"List teacher records."},
+    {title:"Get enrollment data", method:"GET", path:"/attested/get_enrollment_data", description:"List enrollment records."},
+    {title:"Get enrolled student details", method:"GET", path:"/attested/enrolled/{id}", description:"Fetch enrollment details for a numeric ID.", prompt:"enrolled"},
+    {title:"Delete a record", method:"DELETE", path:"/attested/delete?table=TABLE&id=ID", description:"Destructive endpoint. Use only in a local test environment.", prompt:"delete", danger:true}
+  ];
+  let apiBase = "";
+  let loggedIn = false;
+
+  function setMessage(target, message, kind) {
+    target.className = "status " + (kind || "info");
+    target.textContent = message;
+  }
+  function baseUrl() {
+    return $("apiBase").value.trim().replace(/\/+$/, "");
+  }
+  function showDashboard(username, adminId) {
+    loggedIn = true;
+    sessionStorage.setItem("ams_ui_logged_in", "1");
+    sessionStorage.setItem("ams_ui_username", username);
+    // Do not store the password or pretend this UI-only marker is a secure auth token.
+    loginPanel.classList.add("hidden");
+    dashboard.classList.remove("hidden");
+    logoutBtn.classList.remove("hidden");
+    sessionLabel.textContent = "UI session: " + username + (adminId ? " · ID " + adminId : "");
+    renderEndpoints();
+  }
+  function logout() {
+    loggedIn = false;
+    sessionStorage.removeItem("ams_ui_logged_in");
+    sessionStorage.removeItem("ams_ui_username");
+    loginPanel.classList.remove("hidden");
+    dashboard.classList.add("hidden");
+    logoutBtn.classList.add("hidden");
+    sessionLabel.textContent = "Not logged in";
+    $("password").value = "";
+    $("loginStatus").textContent = "";
+    responseStatus.textContent = "Logged out.";
+    responseOutput.textContent = "Responses will appear here.";
+  }
+  function renderEndpoints() {
+    const grid = $("endpointGrid");
+    grid.replaceChildren();
+    endpoints.forEach((ep) => {
+      const card = document.createElement("article");
+      card.className = "endpoint";
+      const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = ep.method;
+      const title = document.createElement("h3"); title.textContent = ep.title;
+      const path = document.createElement("code"); path.textContent = ep.path;
+      const desc = document.createElement("p"); desc.textContent = ep.description;
+      const btn = document.createElement("button"); btn.type = "button"; btn.textContent = ep.prompt ? "Run…" : "Call endpoint";
+      if (ep.danger) btn.className = "danger";
+      btn.addEventListener("click", () => runEndpoint(ep));
+      card.append(tag, title, path, desc, btn);
+      grid.append(card);
+    });
+  }
+  async function request(url, options={}) {
+    const response = await fetch(url, {
+      ...options,
+      headers: { "Accept":"application/json", ...(options.body ? {"Content-Type":"application/json"} : {}), ...(options.headers || {}) },
+      credentials: "include"
+    });
+    const text = await response.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+    return {response, data};
+  }
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    apiBase = baseUrl();
+    if (!apiBase) return setMessage(loginStatus, "Enter your API base URL.", "err");
+    const username = $("username").value.trim();
+    const password = $("password").value;
+    if (!username || !password) return setMessage(loginStatus, "Enter both username and password.", "err");
+    loginBtn.disabled = true; loginBtn.textContent = "Signing in…";
+    loginStatus.textContent = "";
+    try {
+      // FastAPI Body(...) with data.get("username") expects a JSON object, not a JSON array.
+      const {response, data} = await request(apiBase + "/auth/v1/login", {
+        method:"POST",
+        body: JSON.stringify({username, password})
+      });
+      if (response.ok && data && data.status === 1) {
+        $("password").value = "";
+        setMessage(loginStatus, "Login successful.", "ok");
+        showDashboard(username, data.logged_admin_id);
+      } else {
+        const detail = data && (data.detail || data.message);
+        setMessage(loginStatus, "Login failed (" + response.status + "): " + (detail || "Invalid credentials or unexpected response."), "err");
+      }
+    } catch (error) {
+      setMessage(loginStatus, "Could not reach the API. Check that FastAPI is running, the URL is correct, and CORS is configured. Details: " + error.message, "err");
+    } finally {
+      loginBtn.disabled = false; loginBtn.textContent = "Log in";
+    }
+  });
+  async function runEndpoint(ep) {
+    if (!loggedIn) return logout();
+    let path = ep.path;
+    let body;
+    if (ep.prompt === "course") {
+      const id = prompt("Enter course ID:");
+      if (id === null) return;
+      if (!/^\d+$/.test(id)) return showResult("Invalid course ID", {detail:"Enter a positive numeric ID."}, false);
+      path = "/attested/course/" + encodeURIComponent(id);
+    } else if (ep.prompt === "enrolled") {
+      const id = prompt("Enter enrollment/student ID:");
+      if (id === null) return;
+      if (!/^\d+$/.test(id)) return showResult("Invalid ID", {detail:"Enter a positive numeric ID."}, false);
+      path = "/attested/enrolled/" + encodeURIComponent(id);
+    } else if (ep.prompt === "addCourse") {
+      const sample = JSON.stringify({
+        course_name: "Example course",
+        teacher_id: 1,
+        replacement_teacher_id: null,
+        start_time: "09:00:00",
+        end_time: "10:00:00",
+        seat_capacity: 20,
+        fee_amount: 1000,
+        schedule_days: ["MON", "WED"],
+        duration_months: 3,
+        start_date: "2026-11-01",
+        end_date: "2027-01-31",
+        status: "ACTIVE"
+      }, null, 2);
+      const input = prompt("Enter course JSON body (edit the example to match your schema):", sample);
+      if (input === null) return;
+      try { body = JSON.parse(input); } catch { return showResult("Invalid JSON", {detail:"The request body is not valid JSON."}, false); }
+    } else if (ep.prompt === "delete") {
+      const table = prompt("Table name (must be allowed by your backend):");
+      if (table === null || !table.trim()) return;
+      const id = prompt("Record ID:");
+      if (id === null || !/^\d+$/.test(id)) return;
+      if (!confirm("This will attempt to DELETE record " + id + " from " + table + ". Continue only in a test database.")) return;
+      path = "/attested/delete?table=" + encodeURIComponent(table.trim()) + "&id=" + encodeURIComponent(id);
+    }
+    const btnLabel = ep.method + " " + path;
+    responseStatus.textContent = "Requesting " + btnLabel + "…";
+    responseOutput.textContent = "";
+    try {
+      const {response, data} = await request(apiBase + path, {method:ep.method, ...(body ? {body:JSON.stringify(body)} : {})});
+      showResult("HTTP " + response.status + " · " + btnLabel, data, response.ok);
+    } catch (error) {
+      showResult("Request failed · " + btnLabel, {error:error.message, hint:"Check the API URL, server status, and CORS settings."}, false);
+    }
+  }
+  function showResult(title, data, ok) {
+    responseStatus.className = "status " + (ok ? "ok" : "err");
+    responseStatus.textContent = title;
+    responseOutput.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+  }
+  $("docsBtn").addEventListener("click", () => {
+    apiBase = baseUrl() || apiBase;
+    window.open(apiBase + "/docs", "_blank", "noopener,noreferrer");
+  });
+  logoutBtn.addEventListener("click", logout);
+
+  // Restore only the tab's UI state. This is not server-side authentication.
+  if (sessionStorage.getItem("ams_ui_logged_in") === "1") {
+    apiBase = baseUrl();
+    showDashboard(sessionStorage.getItem("ams_ui_username") || "Admin", "");
+  }
+})();
+</script>
+</body>
+</html>
