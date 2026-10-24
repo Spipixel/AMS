@@ -347,9 +347,6 @@ def delete_endpoint(
     id: int,
     admin=Depends(require_admin),
 ):
-    # IMPORTANT: delete_row() must independently validate table names
-    # against an allowlist. Do not interpolate arbitrary table names
-    # into SQL. Prefer resource-specific delete endpoints long-term.
     connection = open_database_or_503("/attested/delete")
 
     try:
