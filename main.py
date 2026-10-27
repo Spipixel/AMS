@@ -8,7 +8,6 @@ from fastapi import (
     Depends,
 )
 from fastapi.middleware.cors import CORSMiddleware
-
 import secrets
 import time
 
@@ -29,17 +28,8 @@ from fetch_data import (
 from log import RequestLoggingMiddleware, log_error
 
 
-# --------------------------------------------------
-# APP AND MIDDLEWARE
-# --------------------------------------------------
-
 app = FastAPI()
-
-# Keep the existing request logger.
 app.add_middleware(RequestLoggingMiddleware)
-
-# Change these to the exact origins serving your frontend.
-# Do not add "null" for normal development or deployment.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -52,15 +42,8 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------
-# SESSION AUTHENTICATION
-# --------------------------------------------------
-# Prototype only: sessions are lost when the process restarts and
-# are not shared between multiple workers. Use a database/Redis store
-# for a multi-worker or production deployment.
 
 ACTIVE_SESSIONS = {}
-
 SESSION_COOKIE = "ams_session"
 SESSION_DURATION = 60 * 60  # 1 hour
 
@@ -130,9 +113,9 @@ def unwrap_helper_result(result, endpoint: str):
     return result[1]
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # LOGIN / LOGOUT
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.post("/auth/v1/login", status_code=status.HTTP_200_OK)
 def auth_login(
@@ -190,7 +173,6 @@ def auth_login(
         }
 
     except HTTPException:
-        # Preserve intentional 400/401/503 responses.
         raise
     except Exception as exc:
         log_error(
@@ -241,9 +223,9 @@ def auth_me(admin=Depends(require_admin)):
     }
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # GET ALL COURSES
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.get("/attested/get_courses")
 def get_courses_data(admin=Depends(require_admin)):
@@ -254,9 +236,9 @@ def get_courses_data(admin=Depends(require_admin)):
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # GET ONE COURSE
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.get("/attested/course/{course_id}")
 def get_course(
@@ -285,9 +267,9 @@ def get_course(
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # ADD COURSE
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.post("/attested/add_course", status_code=status.HTTP_201_CREATED)
 def add_course_endpoint(
@@ -337,9 +319,9 @@ def add_course_endpoint(
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # DELETE RECORD
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.delete("/attested/delete")
 def delete_endpoint(
@@ -379,9 +361,9 @@ def delete_endpoint(
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # GET ENROLLMENT DATA
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.get("/attested/get_enrollment_data")
 def get_enrollment_data(admin=Depends(require_admin)):
@@ -395,9 +377,9 @@ def get_enrollment_data(admin=Depends(require_admin)):
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # GET ENROLLED STUDENT DETAILS
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.get("/attested/enrolled/{id}")
 def get_enrolled_student_details_endpoint(
@@ -421,9 +403,9 @@ def get_enrolled_student_details_endpoint(
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # GET STUDENTS
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.get("/attested/get_students")
 def get_students_data(admin=Depends(require_admin)):
@@ -435,9 +417,9 @@ def get_students_data(admin=Depends(require_admin)):
         close_connection(connection)
 
 
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 # GET TEACHERS
-# --------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 
 @app.get("/attested/get_teachers")
 def get_teachers_data(admin=Depends(require_admin)):
